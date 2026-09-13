@@ -1,0 +1,1006 @@
+#include "menu.h"
+#include "FreeRTOS_demo.h"
+#include "dino.h"
+#include "gpio.h"
+#include <stdint.h>
+#include "adc.h"
+#include "key.h"
+#include "main.h"
+#include "mpu6050.h"
+#include "rtc.h"
+#include "oled.h"
+#include "OLED_Font.h"
+#include "setTime.h"
+#include <math.h>
+
+extern RTC_DataTypeDef RTC_Date;
+extern RTC_TimeTypeDef RTC_Time;
+
+#define Key_GetNum Key_GetNum_RTOS()
+
+uint8_t num=0;
+
+// 返回图标
+extern const uint8_t Return[32];
+
+const uint8_t Menu_Graph[][128]={
+	
+	
+	//退回键，第0行
+	0x00,0x00,0x00,0x00,0xE0,0xF0,0xF0,0xF0,0x70,0x70,0x70,0x70,0x70,0x70,0x70,0x70,
+	0x70,0x70,0x70,0x70,0x70,0x70,0x70,0x70,0xF0,0xF0,0xF0,0xE0,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC3,0xFB,0xF3,0xE0,0xC0,0x80,0x00,
+	0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x03,0x03,0x03,0x03,0x03,0x03,0xC3,0xDF,0xCF,0x07,0x03,0x01,0x00,
+	0x00,0x00,0x00,0x00,0x07,0x0F,0x0F,0x0F,0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,
+	0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,0x0E,0x0F,0x0F,0x0F,0x07,0x00,0x00,0x00,0x00,
+	
+	//秒表，第1行
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x80,0x8E,0xDE,0xD3,0xF1,0xF9,0xD9,
+	0xD9,0xF9,0xF1,0xD3,0xDF,0x8E,0x80,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x80,0xE0,0xF0,0x38,0x1C,0x0E,0x07,0x03,0x01,0x01,0x01,0x00,0x00,0x00,0x00,0xFB,
+	0xFB,0x00,0x00,0x00,0x00,0x01,0x01,0x01,0x03,0x07,0x06,0x0C,0x3E,0xFE,0xEC,0x80,
+	0x7F,0xFF,0xCC,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0F,
+	0x0F,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x00,0x00,0x00,0x00,0x00,0x0C,0xCC,0xFF,0x7F,
+	0x00,0x01,0x03,0x07,0x0C,0x18,0x38,0x30,0x60,0x60,0xC0,0xC0,0xF0,0xF0,0xF0,0xF0,
+	0xF0,0xF0,0xF0,0xF0,0xC0,0xC0,0x60,0x60,0x30,0x30,0x18,0x0C,0x0F,0x03,0x01,0x00,
+	
+	//手电筒，第2行
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,
+	0xC0,0x70,0x70,0xE0,0x40,0x9F,0x1F,0x00,0x40,0x60,0x70,0x38,0x10,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xC0,0x7C,0xFF,0xC7,
+	0x86,0x0C,0x18,0x30,0x61,0xC3,0x87,0x0E,0x9C,0xF8,0xF0,0x66,0x06,0x06,0x06,0x06,
+	0x00,0x00,0x00,0xB0,0xF8,0xFC,0x7E,0x3F,0x1F,0x0E,0x07,0x03,0x81,0xC0,0x60,0x31,
+	0x1B,0x0F,0x06,0x06,0x06,0x07,0x03,0x03,0x03,0x01,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x1E,0x3B,0x73,0xE1,0xC0,0x60,0x30,0x18,0x0C,0x06,0x03,0x01,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	
+	//MPU6050,第3行
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0xC0,0xC0,0xC0,0x00,
+	0x00,0x00,0x0C,0x0C,0x3C,0x64,0xC4,0x86,0x86,0xC6,0x42,0x62,0x62,0x23,0xB3,0xD3,
+	0x59,0x69,0x29,0x3D,0x1D,0x1D,0x0E,0x07,0x87,0xC3,0x73,0x19,0x0E,0x03,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0xF8,0xCC,0x4E,0x72,0x63,0xC1,0x01,0x00,
+	0x00,0x00,0x00,0x80,0xC0,0x70,0x1C,0x06,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x01,0x03,0x06,
+	0x0C,0x18,0x06,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	
+	
+	//游戏，第4行
+	0x00,0x00,0x00,0x00,0x00,0x00,0xC0,0x40,0x20,0x20,0x60,0xC0,0x80,0x80,0x00,0x00,
+	0x00,0x00,0x00,0x80,0x80,0xC0,0x60,0x20,0x20,0x40,0xC0,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0xF0,0x16,0x03,0xC0,0xC0,0xF8,0xF8,0xF8,0xC0,0xC0,0x01,0x01,0x03,
+	0x03,0x03,0x01,0x01,0x80,0xC0,0xF0,0x70,0xF0,0xC0,0x80,0x03,0x1E,0xF0,0x80,0x00,
+	0x00,0x00,0xFF,0x80,0x00,0x00,0x01,0x01,0x0B,0x8F,0xCB,0x61,0x21,0x20,0x30,0x30,
+	0x30,0x20,0x30,0x20,0x21,0x43,0xCF,0x8E,0x0F,0x03,0x01,0x00,0x00,0x03,0xFF,0x00,
+	0x00,0x00,0x00,0x03,0x04,0x0C,0x0C,0x04,0x06,0x01,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x06,0x04,0x0C,0x0C,0x04,0x03,0x00,0x00,
+	
+	//小电视，第5行
+	0x00,0x00,0x00,0x00,0x80,0xC0,0xC0,0xC0,0xC0,0xC0,0xC4,0xCC,0xF8,0xF0,0xE0,0xC0,
+	0xC0,0xC0,0xE0,0xF0,0xF8,0xCC,0xC4,0xC0,0xC0,0xC0,0xC0,0xC0,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0xFF,0xFF,0x01,0x00,0x40,0xC0,0x60,0x60,0x60,0x60,0x00,0x00,
+	0x00,0x00,0x00,0x60,0x60,0x60,0x60,0xC0,0x40,0x00,0x03,0xFF,0xFF,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0xFF,0xFF,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x10,0x10,
+	0x18,0x10,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xFF,0xFF,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x01,0x07,0x07,0x06,0x0E,0x1E,0x1E,0x0E,0x06,0x06,0x06,0x06,
+	0x06,0x06,0x06,0x06,0x06,0x0E,0x1E,0x1E,0x06,0x07,0x07,0x03,0x01,0x00,0x00,0x00,
+	
+	//水平仪，第6行
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xC0,0xE0,0xE0,0x70,0x78,0x38,0x38,0xF8,
+	0x38,0x38,0x78,0x78,0x70,0xE0,0xC0,0xC0,0xC0,0xC0,0x80,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0xF0,0xFC,0x3E,0x07,0x63,0x19,0x04,0x02,0x02,0x01,0x00,0x01,0x9F,
+	0x00,0x00,0x01,0x00,0x02,0x04,0x09,0x31,0x87,0x0F,0xFF,0xFE,0xFC,0x18,0x00,0x00,
+	0x00,0x00,0x00,0x3F,0xFF,0xF1,0xC1,0x99,0x21,0x41,0x81,0x01,0x00,0x00,0x00,0xF1,
+	0x00,0x00,0x00,0x01,0x81,0xC1,0x21,0x19,0x83,0xE1,0xFF,0x7F,0x0F,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x01,0x03,0x07,0x0F,0x0E,0x1C,0x1D,0x19,0x38,0x38,0x3F,
+	0x38,0x38,0x19,0x1D,0x1C,0x0C,0x0E,0x07,0x03,0x03,0x00,0x00,0x00,0x00,0x00,0x00,
+	
+	//空白图标，放在最后
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
+const uint8_t Frame[]={
+	0x3E,0x3F,0x07,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x03,
+	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x07,0x3F,0x3E,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0xC0,0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xC0,0xC0,0x07,0x0F,0x0E,0x0C,
+	0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,
+	0x0C,0x0C,0x0C,0x0C,0x0C,0x0E,0x0F,0x07,
+};
+
+const uint8_t Eyebrow[][32]={
+	
+	// 左眉毛
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xE0,0x78,0x3C,0x0E,0x00,
+   0x30,0x30,0x30,0x10,0x18,0x18,0x0C,0x0C,0x06,0x07,0x03,0x01,0x00,0x00,0x00,0x00,
+	
+	// 右眉毛
+	0x00,0x0E,0x3C,0x78,0xE0,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+   0x00,0x00,0x00,0x00,0x01,0x03,0x07,0x06,0x0C,0x0C,0x18,0x18,0x10,0x30,0x30,0x30,
+};
+
+const uint8_t Mouth[]={
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x03,0x06,0x1C,0x30,0x30,0x20,0x20,0x30,0x18,0x1E,0x1E,0x38,
+	0x30,0x20,0x20,0x30,0x10,0x1C,0x06,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
+const uint8_t Battery[]={
+	0xF8,0x08,0xE8,0xE8,0xE8,0xE8,0xE8,0xE8,0xE8,0xE8,0xE8,0xE8,0x08,0xF8,0x20,0xE0,
+    0x1F,0x10,0x17,0x17,0x17,0x17,0x17,0x17,0x17,0x17,0x17,0x17,0x10,0x1F,0x04,0x07,
+};
+
+// 显示电池容量
+uint16_t ADValue;
+float VBAT;
+int Battery_Capacity;
+
+void Show_Barrier(void)
+{
+	long sum=0;
+
+	for(int i=0;i<3000;i++)
+	{
+		HAL_ADC_Start(&adc1);
+		HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+        ADValue = HAL_ADC_GetValue(&hadc1);
+        sum += ADValue;
+	}
+	ADValue=sum/3000;
+	int temp_cap = (ADValue - 3276) * 100 / 819;
+    if(temp_cap < 0) temp_cap = 0;
+    if(temp_cap > 101) temp_cap = 100; //电池限幅
+    Battery_Capacity = temp_cap;
+
+	OLED_ShowNumPixel(85,4,Battery_Capacity,3);
+	OLED_ShowCharPixel(103,4,'%');
+
+	if(Battery_Capacity==100)	OLED_ShowImage(110,0,16,16,Battery);
+	else if(Battery_Capacity>=10 && Battery_Capacity<100)
+	{
+		OLED_ShowImage(110,0,16,16,Battery);
+		OLED_ClearArea((112+Battery_Capacity/10),5,(10-Battery_Capacity/10),6);
+		OLED_ClearArea(85,4,6,8);
+	}
+	
+	else
+	{
+		OLED_ShowImage(110,0,16,16,Battery);
+		OLED_ClearArea(112,5,10,6);
+		OLED_ClearArea(85,4,12,8);
+	}
+}
+
+uint8_t mode1,mode2,mode3,mode4;
+void Show_Chinese(void)
+{
+    mode1=OLED_ShowCN(4,1,0,0);
+    mode2=OLED_ShowCN(4,2,1,0); //显示"菜单"二字
+    mode3=OLED_ShowCN(4,7,2,1);
+    mode4=OLED_ShowCN(4,8,3,1); //显示"设置"二字
+}
+
+// 引入字体数据
+extern const uint8_t OLED_F12x24[][36];
+
+// 显示首页时钟
+void Show_Clock_UI(void)
+{
+    Show_Battery();
+    HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BIN);
+    HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
+    OLED_ShowString(1, 1, "20", 6);
+    OLED_ShowNum(1, 3, RTC_Date.Year, 2, 6);
+    OLED_ShowString(1, 5, "-", 6);
+    OLED_ShowNum_Reverse(1, 6, RTC_Date.Month, 2, 6, 1);
+    OLED_ShowString(1, 8, "-", 6);
+    OLED_ShowNum(1, 9, RTC_Date.Date, 2, 6);
+    // 垂直位置：y=16 (之前是20或24)，往上提了
+    // 水平位置：(128-96)/2 = 16，居中
+    uint8_t y = 16; 
+    uint8_t x = 16; 
+    
+    // 使用 WithReverse 函数并传入 mode=1
+    // 这样会先清除背景再绘制，解决数字重叠变糊的问题
+    
+    // 小时
+    OLED_ShowImage_Reverse(x, y, 12, 24, OLED_F12x24[RTC_Time.Hours / 10 + 16], 1);
+    OLED_ShowImage_Reverse(x + 12, y, 12, 24, OLED_F12x24[RTC_Time.Hours % 10 + 16], 1);
+    
+    // 显示冒号(ASCII 58 -> index 26)
+    OLED_ShowImage_Reverse(x + 24, y, 12, 24, OLED_F12x24[26], 1);
+    
+    // 分钟
+    OLED_ShowImage_Reverse(x + 36, y, 12, 24, OLED_F12x24[RTC_Time.Minutes / 10 + 16], 1);
+    OLED_ShowImage_Reverse(x + 48, y, 12, 24, OLED_F12x24[RTC_Time.Minutes % 10 + 16], 1);
+    
+    // 冒号
+    OLED_ShowImage_Reverse(x + 60, y, 12, 24, OLED_F12x24[26], 1);
+    
+    // 秒
+    OLED_ShowImage_Reverse(x + 72, y, 12, 24, OLED_F12x24[RTC_Time.Seconds / 10 + 16], 1);
+    OLED_ShowImage_Reverse(x + 84, y, 12, 24, OLED_F12x24[RTC_Time.Seconds % 10 + 16], 1);
+}
+
+int clockflag=1; //光标标志位，1表示菜单，2表示设置
+int clockflag1=0;
+
+int First_Page_Clock(void)
+{
+	Show_Chinese();
+	while(1)
+	{
+		num=Key_GetNum();
+
+		if(num==1) // 上一项
+		{
+			clockflag--;
+			if(clockflag<=0)	clockflag=2;
+		}
+		else if(num==2) // 下一项
+		{
+			clockflag++;
+			if(clockflag>=2)	clockflag=1;
+		}
+		else if(num==3) // 确认
+		{
+			OLED_Clear();
+			return clockflag;
+		}
+		else if(num==4) // 主界面长按关机
+		{
+
+		}
+		Show_Clock_UI();
+		if(clockflag==1)
+		{
+			mode1=OLED_ShowCN(4,1,0,0);
+            mode2=OLED_ShowCN(4,2,1,0); //显示"菜单"二字
+            mode3=OLED_ShowCN(4,7,2,1);
+            mode4=OLED_ShowCN(4,8,3,1); //显示"设置"二字
+		}
+		else if(clockflag==2)
+		{
+			mode1=OLED_ShowCN(4,1,0,1);
+            mode2=OLED_ShowCN(4,2,1,1); //显示"菜单"二字
+            mode3=OLED_ShowCN(4,7,2,0);
+            mode4=OLED_ShowCN(4,8,3,0); //显示"设置"二字
+		}
+
+		OLED_Update();
+	}
+}
+
+uint8_t mode5,mode6,mode7,mode8,mode9,mode10,mode11;
+
+// 显示设置界面
+void Show_SettingPage_UI(void)
+{
+	mode5=OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+    mode6=OLED_ShowCN(2,1,4,0);
+    mode7=OLED_ShowCN(2,2,5,0);	//日期
+    mode8=OLED_ShowCN(2,3,6,0);
+    mode9=OLED_ShowCN(2,4,7,0);	//时间
+    mode10=OLED_ShowCN(2,5,2,0);
+    mode11=OLED_ShowCN(2,6,3,0);	//设置
+}
+
+int setflag=0;
+int setflag1=1;
+int set_UIflag=0;
+int Setting_Page(void)
+{
+	Show_SettingPage_UI();
+	while(1)
+	{
+		num=Key_GetNum();
+		uint8_t setflag_temp=0;
+		if(num==1)
+		{
+			setflag--;
+			if(setflag==0)	setflag=2;
+		}
+		else if(num==2)
+		{
+			setflag++;
+			if(setflag>=3)	setflag=1;
+		}
+		else if(num==3)
+		{
+			OLED_Clear();
+			setflag_temp=setflag;
+		}
+
+		if(setflag_temp==1)
+		{
+			setflag1=0;
+			setflag=1;
+			return 0;
+		}
+		else if(setflag_temp==2)
+		{
+			set_UIflag=SetTime();
+		}
+		if(set_UIflag)
+		{
+			Show_SettingPage_UI();
+			set_UIflag=0;
+		}
+		if(setflag!=setflag1)
+		{
+			if(mode5==1)	{mode5=0;OLED_ShowImage_Reverse(0,0,16,16,Return,0);}
+            else			{mode5=1;OLED_ShowImage_Reverse(0,0,16,16,Return,1);}
+
+			if(mode6==1)	{mode6=0;OLED_ShowCN(2,1,4,0);}
+            else			{mode6=1;OLED_ShowCN(2,1,4,1);}
+
+			if(mode7==1)	{mode7=0;OLED_ShowCN(2,2,5,0);}
+            else			{mode7=1;OLED_ShowCN(2,2,5,1);}
+
+			if(mode8==1)	{mode8=0;OLED_ShowCN(2,3,6,0);}
+            else			{mode8=1;OLED_ShowCN(2,3,6,1);}
+
+			if(mode9==1)	{mode9=0;OLED_ShowCN(2,4,7,0);}
+            else			{mode9=1;OLED_ShowCN(2,4,7,1);}
+
+			if(mode10==1)	{mode10=0;OLED_ShowCN(2,5,2,0);}
+            else			{mode10=0;OLED_ShowCN(2,5,2,1);}
+            
+            if(mode11==1)	{mode11=0;OLED_ShowCN(2,6,3,0);}
+            else			{mode11=1;OLED_ShowCN(2,6,3,1);}
+            
+            setflag1=setflag;
+		}
+		OLED_Update();
+	}
+}
+
+//滑动菜单界面
+uint8_t pre_select;//上次选择的选项
+uint8_t dest_select;//目标选项
+uint8_t x_pre=48;//上次选项的x坐标
+uint8_t Speed=8;//速度
+uint8_t move_flag;//开始移动的标志位，1表示开始移动，0表示停止移动
+
+// 索引映射函数：处理循环菜单的边界 (支持 -1~9 的范围)
+uint8_t Get_Safe_Index(int8_t index)
+{
+    while(index < 1) 
+    {
+        index += 7;
+    }
+    while(index > 7) 
+    {
+        index -= 7;
+    }
+    return index;
+}
+
+void Menu_Animation(void)
+{
+    OLED_Clear();
+    OLED_ShowImage(42, 10, 44, 48, Frame); // 保持48高度
+    //OLED_ShowImage(42,10,44,44,Frame);//此代码会让框的右下角显示不完整
+    //这个问题非常经典，这是一个由于OLED显存分页机制导致的问题。
+    //根本原因是绝大多数 OLED 驱动代码（如 SSD1306/SH1106）在处理图像高度时，是按“页”（Page，每页8像素）来计算的。
+    //框高度是 44 像素。在C语言整数除法中：44 / 8 = 5（余 4）
+    //驱动程序通常只循环 5 次（绘制前 40 行像素）
+    //导致最后 4 行像素（也就是第 40~43 行）被丢弃了。这就导致你的框的整个下边框（包括右下角）显示不出来或显示不完整。
+    //解决方法:我们要“欺骗”驱动程序，把图像高度设置为 48（8的倍数）。
+    //虽然我们只需要显示 44 像素的内容，但我们在数组里把剩下的 4 个像素补全为 0（空白）
+    //并告诉函数我们要画 48 像素高。这样驱动程序就会完整地画出 6 页（6 * 8 = 48），底部就会显示出来了。
+    // ---- 向左滑动 (1 -> 7 也会进这里) ----
+    if(pre_select < dest_select)
+    {
+        if(x_pre >= Speed) x_pre -= Speed; 
+        else x_pre = 0;
+        
+        if(x_pre == 0)
+        {
+            pre_select++;
+            move_flag = 0;
+            x_pre = 48;
+            
+            // 如果滑到了8，瞬间变回1
+            if(pre_select > 7) pre_select = 1;
+        }
+    }
+    
+    // ---- 向右滑动 (7 -> 1 也会进这里) ----
+    if(pre_select > dest_select)
+    {
+        x_pre += Speed;
+        if(x_pre >= 96) 
+        {
+            pre_select--;
+            move_flag = 0;
+            x_pre = 48;
+            
+            // 如果滑到了0，瞬间变回7
+            if(pre_select < 1) pre_select = 7;
+        }
+    }
+    // 左边
+    OLED_ShowImage(x_pre - 48, 16, 32, 32, Menu_Graph[Get_Safe_Index(pre_select - 1) - 1]);
+    // 中间
+    OLED_ShowImage(x_pre,16, 32, 32, Menu_Graph[Get_Safe_Index(pre_select) - 1]);
+    // 右边
+    OLED_ShowImage(x_pre + 48, 16, 32, 32, Menu_Graph[Get_Safe_Index(pre_select + 1) - 1]);
+    // 最右边补漏
+    OLED_ShowImage(x_pre + 96, 16, 32, 32, Menu_Graph[Get_Safe_Index(pre_select + 2) - 1]);
+    
+    OLED_Update(); 
+}
+
+void Set_Selection(uint8_t move_flag,uint8_t Pre_Select,uint8_t Dest_Select)
+{
+	if(move_flag==1)
+	{
+		pre_select=Pre_Select;
+		dest_select=Dest_Select;
+		
+	}
+    Menu_Animation();
+}
+
+uint8_t menu_flag=1;
+// 从菜单向下转场动画
+void MenuToFunction(void)
+{
+    uint8_t i;
+    // 当前选中项索引 (使用 menu_flag 作为基准，因为它是确认后的逻辑位置)
+    // 注意：Menu_Graph 数组下标是 0-6，而我们的逻辑索引是 1-7，所以要 -1
+    
+    // 循环6次，每次下移8像素，16 + 6*8 = 64，刚好移出屏幕(64px高)
+    for(i = 0; i <= 6; i++) 
+    {
+        OLED_Clear();
+        
+        uint8_t y_offset = i * 8; // 计算Y轴偏移量
+
+        // 1. 绘制选中框 (跟随下移)
+        // 原始Y=10, 高度48
+        OLED_ShowImage(42, 10 + y_offset, 44, 48, Frame);
+
+        // 2. 绘制左边的图标 (固定X=0)
+        OLED_ShowImage(0, 16 + y_offset, 32, 32, Menu_Graph[Get_Safe_Index(menu_flag - 1) - 1]);
+        
+        // 3. 绘制中间的图标 (当前选中, 固定X=48)
+        OLED_ShowImage(48, 16 + y_offset, 32, 32, Menu_Graph[Get_Safe_Index(menu_flag) - 1]);
+        
+        // 4. 绘制右边的图标 (固定X=96)
+        OLED_ShowImage(96, 16 + y_offset, 32, 32, Menu_Graph[Get_Safe_Index(menu_flag + 1) - 1]);
+        
+        OLED_Update();
+        // 如果觉得动画太快，可以在这里加一点延时，例如:
+        HAL_Delay(10); 
+    }
+    
+    // 动画结束后清屏，为功能界面做准备
+    OLED_Clear();
+    OLED_Update();
+}
+
+int Menu(void)
+{
+    pre_select = menu_flag;      // 当前位置设为1
+    dest_select = menu_flag;    // 目标位置也是1（静止）
+    x_pre = 48;                     // 居中
+    move_flag = 1;                   // 触发一次刷新，画出初始界面
+    
+    uint8_t last_select = menu_flag; // 记录初始位置
+    
+    while(1)
+    {
+        num=Key_GetNum();
+        uint8_t menu_flag_temp=0;
+        // 只有按键按下时才处理逻辑
+        if(num == 1 || num == 2) 
+        {
+            last_select = menu_flag; // 记住移动前的位置
+            move_flag = 1;
+
+            if(num==1) // 上一项 (1 -> 7)
+            {
+                menu_flag--;
+                if(menu_flag <= 0) menu_flag = 7;
+            }
+            else if(num==2) // 下一项 (7 -> 1)
+            {
+                menu_flag++;
+                if(menu_flag >= 8) menu_flag = 1;
+            }
+
+            // 1. 处理 1 -> 7 (向左循环)
+            if(last_select == 1 && menu_flag == 7)
+            {
+                Set_Selection(move_flag, 1, 0); // 从1滑向0 (0会被映射显示为7)
+            }
+            // 2. 处理 7 -> 1 (向右循环)
+            else if(last_select == 7 && menu_flag == 1)
+            {
+                Set_Selection(move_flag, 7, 8); // 从7滑向8 (8会被映射显示为1)
+            }
+            // 3. 正常情况
+            else
+            {
+                Set_Selection(move_flag, last_select, menu_flag);
+            }
+        }
+        else if(num==3) // 确认键
+        {
+            OLED_Clear();
+            OLED_Update();
+            menu_flag_temp=menu_flag;
+        }
+            
+        if(menu_flag_temp != 0) 
+        {
+            //如果要返回首页(menu_flag_temp==1), Menu()本来就返回0 (对应Menu_Task的 case 0)
+            if(menu_flag_temp == 1) return 0;
+            
+            //其他功能直接返回对应的ID,交给Menu_Task调度
+			// 例如：2->秒表，3->手电筒...
+            return menu_flag_temp; 
+        }
+        //动画刷新必须放在循环里持续调用
+        if(move_flag)
+        {
+            Menu_Animation();
+        }
+    }
+}
+
+/*=======================秒表=======================*/
+volatile uint8_t hour = 0, min = 0, sec = 0;
+volatile uint8_t start_timing_flag = 0; // 1：开始 0：停止
+void Show_StopWatch_UI(void)
+{
+	OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+    OLED_ShowNum_Reverse(2,5,hour,2,8,1);
+    OLED_ShowStringReverse(2,7,":",8,1);
+    OLED_ShowNum_Reverse(2,8,min,2,8,1);
+    OLED_ShowStringReverse(2,10,":",8,1);
+    OLED_ShowNum_Reverse(2,11,sec,2,8,1);
+	OLED_ShowCN(4,1,12,1);
+    OLED_ShowCN(4,2,13,1);//开始
+    OLED_ShowCN(4,4,14,1);
+    OLED_ShowCN(4,5,15,1);//停止
+    OLED_ShowCN(4,7,16,1);
+    OLED_ShowCN(4,8,17,1);//清除
+    OLED_Update();
+}
+
+void Show_Time_Only(void)
+{
+    OLED_ShowNum_Reverse(2,5,hour,2,8,1);
+    OLED_ShowStringReverse(2,7,":",8,1);
+    OLED_ShowNum_Reverse(2,8,min,2,8,1);
+    OLED_ShowStringReverse(2,10,":",8,1);
+    OLED_ShowNum_Reverse(2,11,sec,2,8,1);
+}
+
+void StopWatch_Tick(void)
+{
+	static uint16_t Count=0;
+	if(start_timing_flag==1)
+    {
+        Count++;
+        if(Count>=1000)//1000*1ms=1s执行一次
+        {
+            Count=0;
+            sec++;
+            if(sec>=60)
+            {
+                sec=0;
+                min++;
+                if(min>=60)
+                {
+                    min=0;
+                    hour++;
+                    if(hour>99)hour=0;
+                }
+            }
+        }
+    }
+}
+
+uint8_t stopwatch_flag=1;
+int StopWatch(void)
+{
+	Show_StopWatch_UI();
+    while(1)
+	{
+		num=Key_GetNum();
+		uint8_t stopwatch_flag_temp=0;
+		if(num==1)//上一项
+		{
+			stopwatch_flag--;
+			if(stopwatch_flag<=0)stopwatch_flag=4;
+		}
+		else if(num==2)//下一项
+		{
+			stopwatch_flag++;
+			if(stopwatch_flag>=5)stopwatch_flag=1;
+		}
+		else if(num==3)//确认
+		{
+			OLED_Clear();
+			OLED_Update();
+			stopwatch_flag_temp=stopwatch_flag;
+		}
+		
+		if(stopwatch_flag_temp==1){return 0;}
+		
+		
+		switch(stopwatch_flag)
+		{
+			case 1:    
+                Show_Time_Only();    
+                OLED_ShowImage_Reverse(0,0,16,16,Return,0);
+            	OLED_ShowCN(4,1,12,1);
+                OLED_ShowCN(4,2,13,1);//开始
+                OLED_ShowCN(4,4,14,1);
+                OLED_ShowCN(4,5,15,1);//停止
+                OLED_ShowCN(4,7,16,1);
+                OLED_ShowCN(4,8,17,1);//清除
+				OLED_Update();
+				break;
+			
+			case 2:
+                Show_Time_Only();	
+                start_timing_flag=1;             
+				OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+            	OLED_ShowCN(4,1,12,0);
+                OLED_ShowCN(4,2,13,0);//开始
+                OLED_ShowCN(4,4,14,1);
+                OLED_ShowCN(4,5,15,1);//停止
+                OLED_ShowCN(4,7,16,1);
+                OLED_ShowCN(4,8,17,1);//清除
+				OLED_Update();
+				break;
+			
+			case 3:
+                Show_Time_Only();	
+                start_timing_flag=0;
+                OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+            	OLED_ShowCN(4,1,12,1);
+                OLED_ShowCN(4,2,13,1);//开始
+                OLED_ShowCN(4,4,14,0);
+                OLED_ShowCN(4,5,15,0);//停止
+                OLED_ShowCN(4,7,16,1);
+                OLED_ShowCN(4,8,17,1);//清除
+				OLED_Update();
+				break;
+			
+			case 4:
+                Show_Time_Only();	
+                start_timing_flag=0;
+				hour=min=sec=0;
+				OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+            	OLED_ShowCN(4,1,12,1);
+                OLED_ShowCN(4,2,13,1);//开始
+                OLED_ShowCN(4,4,14,1);
+                OLED_ShowCN(4,5,15,1);//停止
+                OLED_ShowCN(4,7,16,0);
+                OLED_ShowCN(4,8,17,0);//清除
+				OLED_Update();
+				break;
+		}
+	}
+}
+
+/*=======================手电筒=======================*/
+void Show_LED_UI(void)
+{
+	OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+	OLED_ShowStringReverse(2,3,"OFF",12,1);
+	OLED_ShowStringReverse(2,7,"ON",12,1);
+    OLED_Update();
+}
+
+uint8_t led_flag=1;
+int LED(void)
+{
+	Show_LED_UI();
+    while(1)
+	{
+		num=Key_GetNum();
+		uint8_t led_flag_temp=0;
+		if(num==1)//上一项
+		{
+			led_flag--;
+			if(led_flag<=0)led_flag=3;
+		}
+		else if(num==2)//下一项
+		{
+			led_flag++;
+			if(led_flag>=4)led_flag=1;
+		}
+		else if(num==3)//确认
+		{
+			OLED_Clear();
+			OLED_Update();
+			led_flag_temp=led_flag;
+		}
+		
+		if(led_flag_temp==1){return 0;}
+		
+		
+		switch(led_flag)
+		{
+			case 1:
+				OLED_ShowImage_Reverse(0,0,16,16,Return,0);
+                OLED_ShowStringReverse(2,3,"OFF",12,1);
+                OLED_ShowStringReverse(2,7,"ON",12,1);
+				OLED_Update();
+				break;
+			
+			case 2:
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);//OFF
+				OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+                OLED_ShowStringReverse(2,3,"OFF",12,0);
+                OLED_ShowStringReverse(2,7,"ON",12,1);
+				OLED_Update();
+				break;
+			
+			case 3:
+				HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);//ON
+				OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+                OLED_ShowStringReverse(2,3,"OFF",12,1);
+                OLED_ShowStringReverse(2,7,"ON",12,0);
+				OLED_Update();
+				break;
+		}
+	}
+}
+
+/*===================MPU6050姿态解算===================*/
+int16_t ax,ay,az,gx,gy,gz;//MPU6050测得的三轴加速度和角速度
+float roll_g,pitch_g,yaw_g;//陀螺仪解算的欧拉角
+float roll_a,pitch_a;//加速度计解算的欧拉角
+float Roll,Pitch,Yaw;//互补滤波后的欧拉角
+float a=0.9;//互补滤波系数
+float Delta_t=0.005;//采样周期
+double pi=3.1415927;
+
+void MPU6050_Calculation(void)
+{
+	HAL_Delay(5);
+	MPU6050_GetData(&ax,&ay,&az,&gx,&gy,&gz);
+	
+	//通过陀螺仪解算欧拉角
+	roll_g=Roll+(float)gx*Delta_t;
+	pitch_g=Pitch+(float)gy*Delta_t;
+	yaw_g=Yaw+(float)gz*Delta_t;
+	
+	//通过加速度计解算欧拉角
+	pitch_a=atan2((-1)*ax,az)*180/pi;
+	roll_a=atan2(ay,az)*180/pi;
+	
+	//通过互补滤波器进行数据融合
+	Roll=a*roll_g+(1-a)*roll_a;
+	Pitch=a*pitch_g+(1-a)*pitch_a;
+	Yaw=a*yaw_g;//z轴有重力加速度，所以az没用
+}
+
+void Show_MPU6050_UI(void)
+{
+	OLED_ShowImage_Reverse(0,0,16,16,Return,0);
+    OLED_Printf(2,1,8,"Roll: %.2f",Roll);
+	OLED_Printf(3,1,8,"Pitch:%.2f",Pitch);
+	OLED_Printf(4,1,8,"Yaw:  %.2f",Yaw);
+    OLED_Update();
+
+}
+
+int MPU6050(void)
+{
+    while(1)
+	{
+		num=Key_GetNum();
+		if(num==3)
+		{
+			OLED_Clear();
+			OLED_Update();
+			return 0;
+		}
+		
+		OLED_Clear();
+		MPU6050_Calculation();
+		Show_MPU6050_UI();
+	}
+}
+
+/*===========谷歌小恐龙=============*/
+void Show_Game_UI(void)
+{
+	OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+    OLED_ShowCN(2,1,18,1);
+    OLED_ShowCN(2,2,19,1);
+    OLED_ShowCN(2,3,20,1);
+    OLED_ShowCN(2,4,21,1);
+    OLED_ShowCN(2,5,22,1);
+    OLED_Update();
+}
+
+uint8_t game_flag=1;
+int Game(void)
+{
+	Show_Game_UI();
+    while(1)
+	{
+		num=Key_GetNum();
+		uint8_t game_flag_temp=0;
+		if(num==1)
+		{
+			game_flag--;
+			if(game_flag<=0)game_flag=2;
+		}
+		else if(num==2)
+		{
+			game_flag++;
+			if(game_flag>=3)game_flag=1;
+		}
+		else if(num==3)
+		{
+			OLED_Clear();
+			OLED_Update();
+			game_flag_temp=game_flag;
+		}
+		
+		if(game_flag_temp==1){return 0;}
+		else if(game_flag_temp==2){DinoGame_Pos_Init();DinoGame_Animation();}
+		
+		switch(game_flag)
+		{
+			case 1:
+                OLED_ShowImage_Reverse(0,0,16,16,Return,0);
+                OLED_ShowCN(2,1,18,1);
+                OLED_ShowCN(2,2,19,1);
+                OLED_ShowCN(2,3,20,1);
+                OLED_ShowCN(2,4,21,1);
+                OLED_ShowCN(2,5,22,1);
+                OLED_Update();
+				break;
+			
+			case 2:
+                OLED_ShowImage_Reverse(0,0,16,16,Return,1);
+                OLED_ShowCN(2,1,18,0);
+                OLED_ShowCN(2,2,19,0);
+                OLED_ShowCN(2,3,20,0);
+                OLED_ShowCN(2,4,21,0);
+                OLED_ShowCN(2,5,22,0);
+				OLED_Update();
+				break;		
+		}
+	}
+}
+
+/*================动态表情包=================*/
+void Show_Emoji_UI(void)
+{
+	// 闭眼
+	for(uint8_t i=0;i<3;i++)
+	{
+		OLED_Clear();
+		OLED_ShowImage(30,10+i,16,16,Eyebrow[0]);//左眉毛
+		OLED_ShowImage(82,10+i,16,16,Eyebrow[1]);//右眉毛
+		OLED_DrawEllipse(40,32,6,6-i,1);//左眼
+		OLED_DrawEllipse(88,32,6,6-i,1);//右眼
+		OLED_ShowImage(54,40,20,20,Mouth);
+		OLED_Update();
+		HAL_Delay(100);
+	}
+	
+	// 睁眼
+	for(uint8_t i=0;i<3;i++)
+	{
+		OLED_Clear();
+		OLED_ShowImage(30,12-i,16,16,Eyebrow[0]);
+		OLED_ShowImage(82,12-i,16,16,Eyebrow[1]);
+		OLED_DrawEllipse(40,32,6,4+i,1);
+		OLED_DrawEllipse(88,32,6,4+i,1);
+		OLED_ShowImage(54,40,20,20,Mouth);
+		OLED_Update();
+		HAL_Delay(100);
+	}
+	
+	HAL_Delay(500);
+	
+}
+
+int Emoji(void)
+{
+	while(1)
+	{
+		num=Key_GetNum();
+		if(num==3)
+		{
+			OLED_Clear();
+			OLED_Update();
+			return 0;
+		}
+		
+		Show_Emoji_UI();
+	}
+}
+
+/*===============水平仪==================*/
+void Show_Gradienter_UI(void)
+{
+    MPU6050_Calculation();
+
+    // --- 定义参数 ---
+    int center_x = 64;   // 大圆圆心 X
+    int center_y = 32;   // 大圆圆心 Y
+    int r_big = 30;      // 大圆半径
+    int r_small = 4;     // 小球半径
+    int max_dist = r_big - r_small; // 小球允许偏移的最大距离 (30 - 4 = 26)
+    
+    //---1.计算原始偏移量 
+	//原来的逻辑：X减去Roll,Y加上Pitch。 
+	//现在在这里乘了一个系数1.0 (灵敏度),这样倾斜一点点球就会动得很明显,
+	//如果觉得太快或太慢，可以修改这个数字。
+    float sensitivity = 1.0f; 
+    float offset_x = -Roll * sensitivity;
+    float offset_y = Pitch * sensitivity;
+
+    //---2.计算当前偏移距离（勾股定理）
+    float dist = sqrt(offset_x * offset_x + offset_y * offset_y);
+
+    //--- 3. 限制范围 
+	// 如果计算出的距离超过了最大允许距离（26)，则进行限幅
+    if (dist > max_dist)
+    {
+        // 计算缩放比例，将距离强行缩放到 max_dist
+        float scale = max_dist / dist;
+        
+        // 按照比例缩小偏移量
+        offset_x *= scale;
+        offset_y *= scale;
+    }
+
+    OLED_DrawCircle(center_x, center_y, r_big, 0); // 画空心大圆
+    
+    // 画实心小球（圆心坐标+经过限幅的偏移量）
+    OLED_DrawCircle(center_x + (int)offset_x, center_y + (int)offset_y, r_small, 1);
+}
+
+int Gradienter(void)
+{
+	while(1)
+	{
+        num = Key_GetNum(); 
+		if(num == 3)
+		{
+			OLED_Clear();
+			OLED_Update();
+			return 0;
+		}
+		OLED_Clear();
+		Show_Gradienter_UI();
+		OLED_Update();
+	}
+}

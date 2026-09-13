@@ -13,7 +13,7 @@
 #define OLED_CMD 0x00
 #define OLED_DATA 0x40
 
-uint8_t OLED_Buffer[8][128]; // OLED显示缓冲区，8页，每页128列
+uint8_t volatile OLED_Buffer[8][128]; // OLED显示缓冲区，8页，每页128列
 static uint8_t CurrentPage = 0; // 当前页码
 static uint8_t CurrentCol = 0; // 当前列号
 
