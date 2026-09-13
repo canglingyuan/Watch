@@ -1,5 +1,5 @@
-#include "oled.h"
 #include "OLED_Font.h"
+#include "oled.h"
 #include "i2c.h"
 #include "main.h"
 #include <stdint.h>

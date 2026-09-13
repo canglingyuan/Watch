@@ -2,6 +2,7 @@
 #include "oled.h"
 #include "key.h"
 #include <stdlib.h>
+#include "gpio.h"
 #include <math.h>
 
 #define pi 3.1415926535
@@ -70,12 +71,12 @@ const uint8_t Dino[][48]={
 
 /*===========全局变量=============*/
 // 定义物体碰撞箱结构体 (AABB检测)
-struct Object_Position{
-    uint8_t minX;
-    uint8_t minY;
-    uint8_t maxX;
-    uint8_t maxY;
-};
+// struct Object_Position{
+//     uint8_t minX;
+//     uint8_t minY;
+//     uint8_t maxX;
+//     uint8_t maxY;
+// };
 
 uint16_t Ground_Pos; // 地面移动偏移量
 int Score;           // 游戏分数
@@ -149,7 +150,7 @@ void Show_Dino(void)
     IsKey=Key_GetNum();
     if(IsKey == 1 && dino_jump_flag == 0)
     {
-        dino_jump_flag == 1;
+        dino_jump_flag = 1;
     }
 
     if (dino_jump_flag) 

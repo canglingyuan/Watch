@@ -162,7 +162,7 @@ void Show_Barrier(void)
 
 	for(int i=0;i<3000;i++)
 	{
-		HAL_ADC_Start(&adc1);
+		HAL_ADC_Start(&hadc1);
 		HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
         ADValue = HAL_ADC_GetValue(&hadc1);
         sum += ADValue;

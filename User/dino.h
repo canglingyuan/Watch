@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 
+struct Object_Position{
+    uint8_t minX;
+    uint8_t minY;
+    uint8_t maxX;
+    uint8_t maxY;
+};
+
 void Show_Score(void);
 void Show_Ground(void);
 void Show_Barrier(void);
