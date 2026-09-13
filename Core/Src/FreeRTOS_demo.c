@@ -391,7 +391,7 @@ void SetTime_Task(void *pvParameters)
 {
     while(1)
     {
-        SettingPage(); 
+        Setting_Page(); 
         vTaskResume(ShowTime_Task_Handle); 
         vTaskSuspend(NULL);
         vTaskDelay(5);

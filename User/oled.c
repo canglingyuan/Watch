@@ -13,7 +13,7 @@
 #define OLED_CMD 0x00
 #define OLED_DATA 0x40
 
-uint8_t volatile OLED_Buffer[8][128]; // OLED显示缓冲区，8页，每页128列
+uint8_t OLED_Buffer[8][128]; // OLED显示缓冲区，8页，每页128列
 static uint8_t CurrentPage = 0; // 当前页码
 static uint8_t CurrentCol = 0; // 当前列号
 
@@ -26,13 +26,13 @@ static void OLED_Write(uint8_t data,uint8_t type)
     HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDR, buffer, 2, HAL_MAX_DELAY);
 }
 
-// OLED_Read函数用于从OLED显示屏读取数据。
-static uint8_t OLED_Read(uint8_t type, uint8_t *data, uint8_t len)
-{
-    HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDR, &type, 1, HAL_MAX_DELAY);
-    HAL_I2C_Master_Receive(&hi2c1, OLED_ADDR|0x01, data, len, HAL_MAX_DELAY);
-    return *data;
-}
+// // OLED_Read函数用于从OLED显示屏读取数据。
+// static uint8_t OLED_Read(uint8_t type, uint8_t *data, uint8_t len)
+// {
+//     HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDR, &type, 1, HAL_MAX_DELAY);
+//     HAL_I2C_Master_Receive(&hi2c1, OLED_ADDR|0x01, data, len, HAL_MAX_DELAY);
+//     return *data;
+// }
 
 // OLED_Init函数用于初始化OLED显示屏。
 void OLED_Init(void)
@@ -617,8 +617,8 @@ void OLED_DrawLine(int16_t X0, int16_t Y0, int16_t X1, int16_t Y1)
 {
     int16_t x=X0,y=Y0;
     int16_t dx=abs(X1-X0),dy=abs(Y1-Y0);
-    int8_t sx=(X0<X1):1?-1;
-    int8_t sy=(Y0<Y1):1?-1;
+    int8_t sx=(X0<X1)?1:-1;
+    int8_t sy=(Y0<Y1)?1:-1;
     int16_t err=dx-dy;  //err>0 : k<1
     int16_t e2;
 
@@ -649,7 +649,7 @@ void OLED_DrawRect(int16_t X, int16_t Y, int16_t Width, int16_t Height, uint8_t 
         OLED_DrawLine(X, Y, X+Width-1, Y);
         OLED_DrawLine(X, Y+Height-1, X+Width-1, Y+Height-1);
         OLED_DrawLine(X, Y, X, Y+Height-1);
-        OLED_DrawLine( X+Width-1, Y,  X+Width-1, Y1);
+        OLED_DrawLine( X+Width-1, Y,  X+Width-1, Y);
     }
 }
 
@@ -702,8 +702,10 @@ void OLED_DrawTriangle(int16_t X0, int16_t Y0, int16_t X1, int16_t Y1, int16_t X
         int16_t maxY = Y0 > Y1 ? (Y0 > Y2 ? Y0 : Y2) : (Y1 > Y2 ? Y1 : Y2);
 
         // 限制在屏幕范围内
-        if (minX < 0) minX = 0; if (maxX > 127) maxX = 127;
-        if (minY < 0) minY = 0; if (maxY > 63) maxY = 63;
+        if(minX < 0)    minX = 0; 
+        if(maxX > 127)   maxX = 127;
+        if(minY < 0) minY = 0; 
+        if(maxY > 63)    maxY = 63;
 
         for (int16_t y = minY; y <= maxY; y++)
         {
@@ -858,7 +860,7 @@ void OLED_ShowNumPixel(int16_t X, int16_t Y, uint32_t Num, uint8_t len)
     uint8_t i;
     for (i = 0; i < len; i++)
     {
-        uint8_t single_num = Num / OLED_Pow(10, len - i - 1) % 10;
-        OLED_ShowCharPixel(X + (i * 6), Y, single_num + '0');
+        uint8_t single_num = Num / OLED_Power(10, len - i - 1) % 10;
+        OLED_ShowChar_Pixel(X + (i * 6), Y, single_num + '0');
     }
 }

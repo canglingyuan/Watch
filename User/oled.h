@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern volatile uint8_t OLED_Buffer[8][128];
+extern uint8_t OLED_Buffer[8][128];
 
 void OLED_Init(void);
 void OLED_Update(void);
