@@ -202,7 +202,7 @@ void Change_RTC_Time(uint8_t index, uint8_t flag)
   {
       case 0: max_val = 99; min_val = 0; break; // Year
       case 1: max_val = 12; min_val = 1; break; // Month
-      case 2: max_val = RTC_Get_Max_Day(MyRTC_Time[0], MyRTC_Time[1]); min_val = 1; break; // Date
+      case 2: max_val = RTC_Get_MAXDay(MyRTC_Time[0], MyRTC_Time[1]); min_val = 1; break; // Date
       case 3: max_val = 23; min_val = 0; break; // Hour
       case 4: max_val = 59; min_val = 0; break; // Minute
       case 5: max_val = 59; min_val = 0; break; // Second
@@ -223,7 +223,7 @@ void Change_RTC_Time(uint8_t index, uint8_t flag)
 
   if(index == 0 || index == 1)
   {
-      uint8_t current_max_day = RTC_Get_Max_Day(MyRTC_Time[0], MyRTC_Time[1]);
+      uint8_t current_max_day = RTC_Get_MAXDay(MyRTC_Time[0], MyRTC_Time[1]);
       if(MyRTC_Time[2] > current_max_day)
       {
           MyRTC_Time[2] = current_max_day;

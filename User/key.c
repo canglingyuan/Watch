@@ -24,11 +24,11 @@ uint8_t Key_GetNum(void)
 
 void KeyEnter_Tick(void)
 {
-    if(HAL_GPIO_ReadPin(KEY_Enter_GPIO_Port, KEY_Enter_Pin)==KEY_DOWN)
+    if(HAL_GPIO_ReadPin(KEY_Enter_GPIO_Port, KEY_Enter_Pin)==GPIO_PIN_RESET)
     {
         press_time++;
     }
-    if(HAL_GPIO_ReadPin(KEY_Enter_GPIO_Port, KEY_Enter_Pin)==KEY_UP)
+    if(HAL_GPIO_ReadPin(KEY_Enter_GPIO_Port, KEY_Enter_Pin)==GPIO_PIN_SET)
     {
         press_time=0;
     }
@@ -47,19 +47,9 @@ uint8_t KeyAll_GetState(void)
     {
         return 1;
     }
-    else if(HAL_GPIO_ReadPin(KEY_Next_GPIO_Port, KEY_Next_Pin) == PIO_PIN_RESET)
+    else if(HAL_GPIO_ReadPin(KEY_Next_GPIO_Port, KEY_Next_Pin) == GPIO_PIN_RESET)
     {
         return 2;
-    }
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if(GPIO_Pin==KEY_Enter)
-    {
-        osDelay(30);
-        while(Key_GetState(KEY_Enter)==KEY_DOWN);
-        osDelay(50);
     }
 }
 
@@ -72,7 +62,7 @@ void Key_Tick(void)
 	{
 		Count=0;
 		PreState=CurrentState;
-		CurrentState=Key_GetState();
+		CurrentState=KeyAll_GetState();
 		if(PreState!=0 && CurrentState==0)
 		{
 			IsKey=PreState;

@@ -13,10 +13,10 @@
 #include "setTime.h"
 #include <math.h>
 
-extern RTC_DataTypeDef RTC_Date;
+extern RTC_DateTypeDef RTC_Date;
 extern RTC_TimeTypeDef RTC_Time;
 
-#define Key_GetNum Key_GetNum_RTOS()
+#define Key_GetNum Key_GetNum_RTOS
 
 uint8_t num=0;
 
@@ -174,7 +174,7 @@ void Show_Barrier(void)
     Battery_Capacity = temp_cap;
 
 	OLED_ShowNumPixel(85,4,Battery_Capacity,3);
-	OLED_ShowCharPixel(103,4,'%');
+	OLED_ShowChar_Pixel(103,4,'%');
 
 	if(Battery_Capacity==100)	OLED_ShowImage(110,0,16,16,Battery);
 	else if(Battery_Capacity>=10 && Battery_Capacity<100)
@@ -207,7 +207,7 @@ extern const uint8_t OLED_F12x24[][36];
 // 显示首页时钟
 void Show_Clock_UI(void)
 {
-    Show_Battery();
+    Show_Barrier();
     HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BIN);
     HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
     OLED_ShowString(1, 1, "20", 6);

@@ -27,7 +27,7 @@ void DateSet_UI()
     OLED_ShowNum(2,4,20,2,8); // 显示20xx
 
     HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BIN);
-    HAL_RTC_GetDate(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
+    HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
 
     OLED_ShowNum_Reverse(2, 6, RTC_Date.Year, 2, 8, 1);
     OLED_ShowNum_Reverse(3, 4, RTC_Date.Month, 2, 8, 1);
@@ -48,7 +48,7 @@ void TimeSet_UI()
     OLED_ShowString(3,3,":",8);
 
     HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BIN);
-    HAL_RTC_GetDate(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
+    HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BIN);
 
     OLED_ShowNum_Reverse(1, 4, RTC_Time.Hours, 2, 8, 1);
     OLED_ShowNum_Reverse(2, 4, RTC_Time.Minutes, 2, 8, 1);
@@ -222,7 +222,7 @@ int SetTime()
             {
                 DateSet_UI();
             }
-            OLED_ShowImage_Reverse(0,0,16,16,Return1,0);
+            OLED_ShowImage_Reverse(0,0,16,16,Return,0);
             OLED_ShowCN(2,1,8,1);
             OLED_ShowCN(3,1,9,1);
             OLED_ShowCN(4,1,4,1);
@@ -230,7 +230,7 @@ int SetTime()
         }
         else if(settime_flag==2)
         {
-            OLED_ShowImage_Reverse(0,0,16,16,Return1,1);
+            OLED_ShowImage_Reverse(0,0,16,16,Return,1);
             OLED_ShowCN(2,1,8,0);
             OLED_ShowCN(3,1,9,1);
             OLED_ShowCN(4,1,4,1);
@@ -238,7 +238,7 @@ int SetTime()
         }
         else if(settime_flag==3)
         {
-            OLED_ShowImage_Reverse(0,0,16,16,Return1,1);
+            OLED_ShowImage_Reverse(0,0,16,16,Return,1);
             OLED_ShowCN(2,1,8,1);
             OLED_ShowCN(3,1,9,0);
             OLED_ShowCN(4,1,4,1);
@@ -246,8 +246,8 @@ int SetTime()
         }
         else if(settime_flag==4)
         {
-            if(set_time_flag1==5) DateSet_UI();
-            OLED_ShowImage_Reverse(0,0,16,16,Return1,1);
+            if(settime_flag1==5) DateSet_UI();
+            OLED_ShowImage_Reverse(0,0,16,16,Return,1);
             OLED_ShowCN(2,1,8,1);
             OLED_ShowCN(3,1,9,1);
             OLED_ShowCN(4,1,4,0);

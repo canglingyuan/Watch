@@ -71,7 +71,10 @@ const uint8_t Dino[][48]={
 /*===========全局变量=============*/
 // 定义物体碰撞箱结构体 (AABB检测)
 struct Object_Position{
-    uint8_t minX,minY,maxX,maxY;
+    uint8_t minX;
+    uint8_t minY;
+    uint8_t maxX;
+    uint8_t maxY;
 };
 
 uint16_t Ground_Pos; // 地面移动偏移量
